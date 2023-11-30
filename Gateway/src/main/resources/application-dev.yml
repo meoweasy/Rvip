@@ -1,0 +1,31 @@
+server:
+  port: 8072
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      routes:
+        - id: provider_view
+          uri: http://applicationContainer:8080
+          predicates:
+            - Path=/provider_view/**
+          filters:
+            - RewritePath=/provider_view/(?<path>.*), /$\{path}
+            - RemoveRequestHeader= Cookie,Set-Cookie
+          #Для второй лабы
+#        - id: report_providers
+#          uri: http://reportContainer:8070
+#          predicates:
+#            - Path=/report_providers/**
+#          filters:
+#            - RewritePath=/report_providers/(?<path>.*), /$\{path}
+#            - RemoveRequestHeader= Cookie,Set-Cookie
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"

@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/RvipLabs
+    username: postgres
+    password: 123
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        show_sql: true
+        ddl-auto: validate
+        temp:
+          use_jdbc_metadata_defaults: false
+  liquibase:
+    change-log: classpath*:db/db_changelog-master.yaml
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
