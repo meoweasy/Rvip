@@ -22,5 +22,9 @@ public class ReportService {
     public List<Provider> getProvidersByStatus(boolean status) {
         return providerRepository.findAllByStatus(status);
     }
+
+    public String check(){
+        return "TestOk";
+    }
 }
 
