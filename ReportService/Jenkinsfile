@@ -1,0 +1,23 @@
+pipeline {
+agent any
+    environment {
+   	 PROJECT_ID = 'docker'
+            	CLUSTER_NAME = 'jenkins'
+            	LOCATION = 'us-central-1a'
+    }
+
+stages {
+    	stage('Checkout') {
+            steps {
+                checkout scm
+            }
+    	}
+    	stage('Build image') {
+            steps {
+                script {
+                    app = docker.build("zetzo/pipeline:{env.BUILD_ID}")
+                }
+
+            }
+    	}
+}
