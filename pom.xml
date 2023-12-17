@@ -12,6 +12,7 @@
         <module>ProviderService</module>
         <module>Gateway</module>
         <module>ReportService</module>
+        <module>FileService</module>
     </modules>
 
     <properties>

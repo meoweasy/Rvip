@@ -1,0 +1,7 @@
+server:
+  port: 8081
+minio:
+  access:
+    name: "provider"
+    secret: "minio123"
+  url: "http://minio:9000"

@@ -3,9 +3,14 @@ package com.example.providerService.Controller;
 import com.example.providerService.DTO.ProviderDTO;
 import com.example.providerService.Repository.ProviderRepository;
 import com.example.providerService.Service.ProviderService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.*;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.ui.Model;
 import org.springframework.web.client.RestTemplate;
@@ -23,6 +28,7 @@ public class ProviderController {
 
     private final String reportContainer;
     private  final String port;
+    private static final Logger log = LoggerFactory.getLogger(ProviderController.class);
 
     public ProviderController(Environment environment){
         this.reportContainer = environment.getProperty("my.reportContainer");
@@ -61,8 +67,18 @@ public class ProviderController {
     }
 
     @GetMapping("/report")
-    public String getActiveProviders(Model model) {
-        RestTemplate restTemplate = new RestTemplate();
-        return restTemplate.getForObject("http://"+reportContainer+":"+port+"/report_providers", String.class);
+    public String getActiveProviders(@RequestHeader("correlation-id") String corId) {
+        try{
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("correlation-id", "corrid: %s /%s %s".formatted(corId, "provider_view", "report"));
+            log.info("corrid: %s /%s %s".formatted(corId, "provider_view", "report"));
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            return restTemplate.exchange("http://"+reportContainer+":"+port+"/report_providers", HttpMethod.GET, entity, String.class).getBody();
+            //return restTemplate.getForObject("http://"+reportContainer+":"+port+"/report_providers", String.class);
+        }catch (Exception ex){
+            return ex.getMessage();
+        }
     }
+
 }
