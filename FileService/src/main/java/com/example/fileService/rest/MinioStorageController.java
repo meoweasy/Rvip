@@ -3,13 +3,11 @@ package com.example.fileService.rest;
 import com.example.fileService.minio.MinioAdapter;
 import io.minio.errors.*;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -52,37 +50,41 @@ public class MinioStorageController {
     }
 
     @PostMapping(path="/upload", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public String upload(@RequestPart(value = "file", required = false) MultipartFile files) throws IOException{
-        if (minioAdapter.uploadFile("provider1", files.getOriginalFilename(), files.getBytes())) {
-            Map<String, String> result = new HashMap<>();
-            result.put("key", files.getOriginalFilename());
-            System.out.println("Файл сохранен в облаке");
-            return result.get("key");
-        } else{
-            System.out.println("Файл НЕ сохранен в облаке");
-            return "Файл уже существует";
+    public ResponseEntity<?> upload(@RequestParam("file") MultipartFile file) {
+        if (file != null && !file.isEmpty()) {
+            try {
+                System.out.println("Received file: " + file.getOriginalFilename());
+                minioAdapter.uploadFile("provider1", file.getOriginalFilename(), file.getBytes());
+
+                return ResponseEntity.ok("Файл " + file.getOriginalFilename() + " успешно загружен");
+            } catch (Exception ex) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при загрузке файла");
+            }
+        } else {
+            return ResponseEntity.badRequest().body("Файл не был загружен");
         }
     }
 
     @GetMapping(path = "/download")
-    public ResponseEntity<?> uploadFile(@RequestPart(value = "file") String file) throws IOException{
-        try{
-            byte[] data = minioAdapter.getFile("provider1", file);
+    public ResponseEntity<?> downloadFile(@RequestParam("filename") String filename) {
+        try {
+            byte[] data = minioAdapter.getFile("provider1", filename);
 
-            ByteArrayResource resource = new ByteArrayResource(data);
-            System.out.println("Файл сохранен в облаке");
+            if (data.length > 0) {
+                ByteArrayResource resource = new ByteArrayResource(data);
+                HttpHeaders headers = new HttpHeaders();
+                headers.add("Content-Disposition", "attachment; filename=" + filename);
 
-            return ResponseEntity
-                    .ok()
-                    .contentLength(data.length)
-                    .header("Content-type", "applocation/octat-stream")
-                    .header("Content-disposition", "attachment; filename=\"" + file + "\"")
-                    .body(resource);
-
-        }catch (Exception ex){
-            System.out.println("Файл НЕ сохранен в облаке");
-            return ResponseEntity
-                    .ok("no file");
+                return ResponseEntity.ok()
+                        .headers(headers)
+                        .contentLength(data.length)
+                        .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                        .body(resource);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при скачивании файла");
         }
     }
 }

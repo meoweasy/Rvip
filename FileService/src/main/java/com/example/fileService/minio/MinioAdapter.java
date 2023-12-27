@@ -1,5 +1,6 @@
 package com.example.fileService.minio;
 
+import com.opencsv.CSVWriter;
 import io.minio.*;
 import io.minio.errors.*;
 import io.minio.messages.Bucket;
@@ -9,7 +10,9 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class MinioAdapter {
@@ -35,40 +38,35 @@ public class MinioAdapter {
              e.printStackTrace();
          }
      }
-     public boolean uploadFile(String bucket, String name, byte[] content) {
-        File file = new File(name);
-        file.canWrite();
-        file.canRead();
-        try{
-            FileOutputStream iofs = new FileOutputStream(file);
-            iofs.write(content);
+    public boolean uploadFile(String bucket, String filename, byte[] data) {
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(data);
 
-            minioClient.putObject(PutObjectArgs
-                    .builder()
-                    .bucket(bucket)
-                    .object(name)
-                    .stream(new FileInputStream(name), file.length(), -1)
-                    .build());
-        } catch (Exception ex){
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(filename)
+                            .stream(bis, data.length, -1)
+                            .build()
+            );
+
+            return true;
+        } catch (Exception ex) {
             throw new RuntimeException(ex.getMessage());
         }
-        return true;
     }
 
-    public byte[] getFile(String bucket, String key) throws Exception{
-        System.out.println("tryam");
+    public byte[] getFile(String bucket, String key) throws Exception {
+        try {
+            InputStream stream = minioClient.getObject(GetObjectArgs
+                    .builder()
+                    .bucket(bucket)
+                    .object(key)
+                    .build());
 
-        try{
-            InputStream stream =
-                    minioClient.getObject(GetObjectArgs
-                            .builder()
-                            .bucket(bucket)
-                            .object(key)
-                            .build());
-            byte[] content = IOUtils.toByteArray(stream);
-            return content;
-
-        }catch (Exception ex){
+            return IOUtils.toByteArray(stream);
+        } catch (Exception ex) {
+            ex.printStackTrace(); // Log the exception for debugging
             throw new RuntimeException(ex.getMessage());
         }
     }
