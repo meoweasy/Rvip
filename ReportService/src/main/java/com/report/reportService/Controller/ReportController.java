@@ -1,6 +1,7 @@
 package com.report.reportService.Controller;
 
 import com.report.reportService.Model.Provider;
+import com.report.reportService.Service.ReportQueueService;
 import com.report.reportService.Service.ReportService;
 import org.apache.commons.csv.CSVFormat;
 import org.slf4j.Logger;
@@ -35,14 +36,16 @@ import java.util.stream.Collectors;
 @Controller
 public class ReportController {
     private final ReportService reportService;
+    private final ReportQueueService reportQueueService;
     private final String myminio;
     private  final String port;
     private static final Logger log = LoggerFactory.getLogger(ReportController.class);
 
-    public ReportController(ReportService reportService, Environment environment) {
+    public ReportController(ReportService reportService, Environment environment, ReportQueueService reportQueueService) {
         this.reportService = reportService;
         this.myminio = environment.getProperty("my.myminio");
         this.port = environment.getProperty("my.port");
+        this.reportQueueService = reportQueueService;
     }
 
     @GetMapping("/report_providers")
@@ -58,10 +61,16 @@ public class ReportController {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             CSVPrinter csvPrinter = new CSVPrinter(new PrintWriter(byteArrayOutputStream), CSVFormat.DEFAULT);
             csvPrinter.printRecord("Active Providers");
-            csvPrinter.printRecords(reportService.getProvidersByStatus(true));
+            List<Provider> providers = reportService.getProvidersByStatus(true);
+            for (Provider provider : providers) {
+                csvPrinter.printRecord(provider.getName(), provider.getSurname());
+            }
             csvPrinter.println();
             csvPrinter.printRecord("Inactive Providers");
-            csvPrinter.printRecords(reportService.getProvidersByStatus(false));
+            List<Provider> providers2 = reportService.getProvidersByStatus(false);
+            for (Provider provider : providers2) {
+                csvPrinter.printRecord(provider.getName(), provider.getSurname());
+            }
             csvPrinter.close();
 
             byte[] bytes = byteArrayOutputStream.toByteArray();
@@ -69,7 +78,8 @@ public class ReportController {
             if (bytes.length > 0) {
                 MultipartFile multipartFile = new ByteArrayMultipartFile("file", bytes);
 
-                saveReport(multipartFile, corId);
+                reportQueueService.sendReportToQueue(multipartFile, corId);
+                //saveReport(multipartFile, corId);
             } else {
                 System.out.println("Файл пустой");
             }
